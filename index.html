@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Flip Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f3f3f3;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #coin {
+      margin: 20px auto;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #ccc;
+      line-height: 100px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+    }
+    .heads {
+      background-color: #4caf50;
+    }
+    .tails {
+      background-color: #f44336;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    #points-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    #points {
+      font-size: 20px;
+      font-weight: bold;
+      margin-right: 10px; /* Add space between points and button */
+    }
+    #topup-container {
+      display: none; /* Initially hidden */
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="points-container">
+      <span id="points">100</span>
+      <button onclick="showTopUp()">+</button>
+    </div>
+    <h1>Coin Flip Game</h1>
+    <input type="number" id="bet" placeholder="Enter your bet" min="1">
+    <div>
+      <button onclick="flipCoin('Heads')">Bet on Heads</button>
+      <button onclick="flipCoin('Tails')">Bet on Tails</button>
+    </div>
+    <div id="coin" class="heads">H</div>
+    <p id="result"></p>
+
+    <div id="topup-container">
+      <h3>Top-Up Points</h3>
+      <input type="number" id="topup" placeholder="Enter top-up amount" min="1">
+      <button onclick="topUpPoints()">Top Up</button>
+      <button onclick="hideTopUp()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    let points = 100; // Initial points
+    let winPercentage = 60; // Set default winning percentage
+
+    // Function to get the current winning percentage from the server
+    function getWinPercentage() {
+      fetch('get_percentage.php')
+        .then(response => response.json())
+        .then(data => {
+          winPercentage = data.winPercentage;
+        });
+    }
+
+    function flipCoin(choice) {
+      const betAmount = parseInt(document.getElementById('bet').value);
+      const coinElement = document.getElementById('coin');
+      const resultElement = document.getElementById('result');
+
+      // Validate bet amount
+      if (isNaN(betAmount) || betAmount <= 0) {
+        resultElement.innerText = "Please enter a valid bet amount!";
+        return;
+      }
+      if (betAmount > points) {
+        resultElement.innerText = "You don't have enough points to bet that much!";
+        return;
+      }
+
+      // Deduct the bet amount from points
+      points -= betAmount;
+
+      // Randomly determine win or lose based on percentage
+      const isWin = Math.random() * 100 < winPercentage; // Check if the player wins
+
+      // Update coin display
+      const randomOutcome = isWin ? choice : (choice === "Heads" ? "Tails" : "Heads");
+      if (randomOutcome === "Heads") {
+        coinElement.classList.add("heads");
+        coinElement.classList.remove("tails");
+        coinElement.innerText = "H";
+      } else {
+        coinElement.classList.add("tails");
+        coinElement.classList.remove("heads");
+        coinElement.innerText = "T";
+      }
+
+      // Check if the player wins or loses
+      if (isWin) {
+        const winnings = betAmount * 2; // Player wins double the bet amount
+        points += winnings;
+        resultElement.innerText = `WINN! The coin landed on ${randomOutcome}. You earned ${winnings} points!`;
+      } else {
+        resultElement.innerText = `You lost! The coin landed on ${randomOutcome}. Better luck next time!`;
+      }
+
+      // Update points display
+      document.getElementById('points').innerText = points;
+
+      // Check if the player is out of points
+      if (points <= 0) {
+        resultElement.innerText += " Game over! You're out of points.";
+      }
+    }
+
+    function showTopUp() {
+      document.getElementById('topup-container').style.display = 'block'; // Show top-up container
+    }
+
+    function hideTopUp() {
+      document.getElementById('topup-container').style.display = 'none'; // Hide top-up container
+    }
+
+    function topUpPoints() {
+      const topupAmount = parseInt(document.getElementById('topup').value);
+      const resultElement = document.getElementById('result');
+
+      // Validate top-up amount
+      if (isNaN(topupAmount) || topupAmount <= 0) {
+        resultElement.innerText = "Please enter a valid top-up amount!";
+        return;
+      }
+
+      // Add top-up amount to points
+      points += topupAmount;
+      document.getElementById('points').innerText = points;
+
+      resultElement.innerText = `You have successfully topped up ${topupAmount} points!`;
+      document.getElementById('topup').value = ''; // Clear top-up input field
+      hideTopUp(); // Hide the top-up container after topping up
+    }
+
+    // Get the initial win percentage when the page loads
+    getWinPercentage();
+  </script>
+</body>
+</html>
